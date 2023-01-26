@@ -4,6 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/player_view"
+    app:player_layout_id="@layout/player_layout_view"
+    app:use_controller="false"
     >
 
 </com.google.android.exoplayer2.ui.StyledPlayerView>
