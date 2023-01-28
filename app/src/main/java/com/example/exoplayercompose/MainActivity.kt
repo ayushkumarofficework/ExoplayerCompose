@@ -10,14 +10,14 @@ import android.view.LayoutInflater
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
+
+
 import androidx.compose.runtime.*
 import androidx.compose.runtime.State
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,7 +55,6 @@ import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelectionParameters
 import com.google.android.exoplayer2.ui.StyledPlayerView
-import com.google.android.exoplayer2.ui.StyledPlayerView.ControllerVisibilityListener
 import com.google.android.exoplayer2.upstream.DataSpec
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSource
@@ -78,10 +77,12 @@ class MainActivity : ComponentActivity() {
             ExoplayerComposeTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colors.background
+                    modifier = Modifier
+                        .background(Color.Green)
+                        .padding(20.dp),
+                    color = MaterialTheme.colors.background,
                 ) {
-                    PlayerScreen(this::getPlayerView,this::onPlayerViewUpdated,mainActivityViewModel._playerState,mainActivityViewModel.analyticsListener,this::getMediaSource,this::onPlayerClicked,Modifier.fillMaxSize())
+                    PlayerScreen(this::getPlayerView,this::onPlayerViewUpdated,mainActivityViewModel._playerState,mainActivityViewModel.analyticsListener,this::getMediaSource,this::onPlayerClicked, modifier = Modifier.wrapContentHeight())
                 }
             }
         }
@@ -146,42 +147,58 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun PlayerControls(playbackState : Int,playWhenReady: Boolean,playerCurrentPosition: Long, onPlayPauseAction :  ()-> Unit,modifier: Modifier){
+fun PlayerControls(playbackState : Int,playWhenReady: Boolean,playerCurrentPosition: Long,totalDuration : Long, onPlayPauseAction :  ()-> Unit,onSeekForward: () -> Unit,onSeek : (Long) -> Unit,modifier: Modifier){
 
-        Box(modifier = modifier){
-            when(playbackState) {
-                STATE_BUFFERING -> {
-                    CentreControls("Buffering ...",playWhenReady,{onPlayPauseAction()},modifier = modifier)
-                }
-                STATE_READY -> {
-                    CentreControls("Playing ...",playWhenReady,{onPlayPauseAction()},modifier = modifier)
-                }
-                STATE_ENDED -> {
-                    CentreControls("Ended ...",playWhenReady,{},modifier = modifier)
-                }
-                STATE_IDLE -> {
-                    CentreControls("Idle ...",playWhenReady,{onPlayPauseAction()},modifier = modifier)
-                }
-            }
-
-        }
-
+    Column(modifier = modifier.fillMaxHeight() , verticalArrangement = Arrangement.SpaceBetween , horizontalAlignment = Alignment.CenterHorizontally) {
+        TopControls(modifier)
+        CentreControls(
+            playbackState = playbackState,
+            playWhenReady = playWhenReady,
+            onPlaybackAction = { onPlayPauseAction() },
+            onSeekForward = { onSeekForward() },
+            modifier = modifier
+        )
+        BottomControls(playerCurrentPosition,totalDuration,{seekTo -> onSeek(seekTo)},modifier)
+    }
 
 }
 
 @Composable
-fun CentreControls(text : String, playWhenReady: Boolean,onPlaybackAction : () -> Unit,modifier : Modifier) {
-    Row(modifier = modifier.fillMaxWidth()){
-        Text(text = text, color = Color.White)
-        Spacer(modifier = Modifier.width(20.dp))
-        if(playWhenReady){
-            Text(text = "Pause", modifier = Modifier.clickable {
-                onPlaybackAction()
-            },color = Color.White)
-        } else{
-            Text(text = "Play", modifier = Modifier.clickable {
-                onPlaybackAction()
-            })
+fun TopControls(modifier: Modifier) {
+    Text(text = "Top Controls" , color = Color.White)
+}
+
+@Composable
+fun BottomControls(playerCurrentPosition : Long,totalDuration: Long, onSeek : (Long) -> Unit, modifier: Modifier) {
+    Column(modifier = modifier) {
+        Text(text = "${playerCurrentPosition} / ${totalDuration}", color = Color.White)
+        val sliderValue  = if (totalDuration != 0L) {
+            ((playerCurrentPosition).toFloat() / totalDuration.toFloat())
+        } else {
+            0
+        }.toFloat()
+        Slider(steps = 100, value = sliderValue, onValueChange =  {value -> onSeek((if(totalDuration==0L) 0L else (value*totalDuration)).toLong())})
+    }
+}
+
+@Composable
+fun CentreControls(playbackState: Int, playWhenReady: Boolean,onPlaybackAction : () -> Unit,onSeekForward : () -> Unit,modifier : Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically){
+
+        if(playbackState == STATE_READY) {
+            if(playWhenReady){
+                Text(text = "Pause", modifier = Modifier.clickable {
+                    onPlaybackAction()
+                }, color = Color.White)
+            } else{
+                Text(text = "Play", modifier = Modifier.clickable {
+                    onPlaybackAction()
+                }, color = Color.White)
+            }
+            Spacer(modifier = Modifier.width(20.dp))
+            Text(text = "Seek 30 Seconds",modifier = Modifier.clickable { onSeekForward() }, color = Color.White)
+        } else if(playbackState == STATE_BUFFERING) {
+            Text(text = "Loading", color = Color.White)
         }
     }
 }
@@ -207,12 +224,14 @@ fun PlayerScreen(getPlayerView : (Context) -> View,
             .setTrackSelector(trackSelector)
             .setAnalyticsCollector(analyticsCollector)
             .setBandwidthMeter(DefaultBandwidthMeter.getSingletonInstance(context))
+            .setSeekForwardIncrementMs(30000)
+            .setSeekBackIncrementMs(30000)
             .build()
     }
 
     Box(modifier = modifier){
 
-        AndroidView(modifier = Modifier.clickable {
+        AndroidView(modifier = modifier.clickable {
             onPlayerClick()
         }, factory = { context ->
             val view = getPlayerView(context)
@@ -233,11 +252,11 @@ fun PlayerScreen(getPlayerView : (Context) -> View,
                 }
             }
         }
+
         if(playerState.value.isControllerVisible){
-            PlayerControls(playerState.value.playbackState,playerState.value.playWhenReady,playerState.value.playerCurrentPosition, onPlayPauseAction = {exoPlayer?.playWhenReady = playerState.value.playWhenReady.not()} ,
-                modifier
-                    .align(Alignment.Center)
-                    .fillMaxWidth())
+            PlayerControls(playerState.value.playbackState,playerState.value.playWhenReady,playerState.value.playerCurrentPosition,playerState.value.totalDuration, onPlayPauseAction = {exoPlayer?.playWhenReady = playerState.value.playWhenReady.not()} , onSeekForward = {exoPlayer?.seekForward()},
+                {seekTo -> exoPlayer?.seekTo(seekTo)},modifier.matchParentSize()
+            )
         }
     }
 
@@ -270,6 +289,7 @@ fun PlayerScreen(getPlayerView : (Context) -> View,
         lifecycle.addObserver(observer)
 
         onDispose {
+            exoPlayer?.release()
             Log.e("ExoplayerCompose","exoPlayer.release()")
             lifecycle.removeObserver(observer)
         }

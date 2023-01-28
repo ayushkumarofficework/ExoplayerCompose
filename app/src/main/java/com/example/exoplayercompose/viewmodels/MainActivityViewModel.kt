@@ -38,7 +38,7 @@ class MainActivityViewModel : ViewModel() {
     val analyticsListener = object : AnalyticsListener{
         override fun onEvents(player: Player, events: AnalyticsListener.Events) {
             super.onEvents(player, events)
-            playerState.value = playerState.value.copy(playerCurrentPosition = player.currentPosition)
+            playerState.value = playerState.value.copy(playerCurrentPosition = player.currentPosition, bufferPercentage = player.bufferedPercentage, totalDuration = player.duration)
         }
 
         override fun onPlaybackStateChanged(eventTime: AnalyticsListener.EventTime, state: Int) {
