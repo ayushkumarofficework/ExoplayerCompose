@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
 
     var playerView : StyledPlayerView? = null
 
-    var adsLoader : AdsLoader? = null
+    var adsLoader : ImaAdsLoader? = null
 
     lateinit var mainActivityViewModel : MainActivityViewModel
 
@@ -77,9 +77,7 @@ class MainActivity : ComponentActivity() {
             ExoplayerComposeTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
-                    modifier = Modifier
-                        .background(Color.Green)
-                        .padding(20.dp),
+                    modifier = Modifier,
                     color = MaterialTheme.colors.background,
                 ) {
                     PlayerScreen(this::getPlayerView,this::onPlayerViewUpdated,mainActivityViewModel._playerState,mainActivityViewModel.analyticsListener,this::getMediaSource,this::onPlayerClicked, modifier = Modifier.wrapContentHeight())
@@ -96,7 +94,15 @@ class MainActivity : ComponentActivity() {
         val dataSourceFactory = DefaultDataSource.Factory(context)
         var mediaSource = buildMediaSource(videoUrl,dataSourceFactory)
         if(adsLoader == null) {
-            adsLoader = ImaAdsLoader.Builder(context).build()
+            adsLoader = ImaAdsLoader.Builder(context).setAdEventListener { adEvent ->
+                adEvent?.let {
+
+                }
+            }.setAdErrorListener{ adErrorEvent ->
+                adErrorEvent?.let {
+
+                }
+            }.build()
         }
         adsLoader?.setPlayer(exoPlayer)
         val mediaSourceFactory =
@@ -171,7 +177,7 @@ fun TopControls(modifier: Modifier) {
 @Composable
 fun BottomControls(playerCurrentPosition : Long,totalDuration: Long, onSeek : (Long) -> Unit, modifier: Modifier) {
     Column(modifier = modifier) {
-        Text(text = "${playerCurrentPosition} / ${totalDuration}", color = Color.White)
+        Text(text = "$playerCurrentPosition / $totalDuration", color = Color.White)
         val sliderValue  = if (totalDuration != 0L) {
             ((playerCurrentPosition).toFloat() / totalDuration.toFloat())
         } else {
@@ -198,7 +204,7 @@ fun CentreControls(playbackState: Int, playWhenReady: Boolean,onPlaybackAction :
             Spacer(modifier = Modifier.width(20.dp))
             Text(text = "Seek 30 Seconds",modifier = Modifier.clickable { onSeekForward() }, color = Color.White)
         } else if(playbackState == STATE_BUFFERING) {
-            Text(text = "Loading", color = Color.White)
+            CircularProgressIndicator()
         }
     }
 }
@@ -289,6 +295,7 @@ fun PlayerScreen(getPlayerView : (Context) -> View,
         lifecycle.addObserver(observer)
 
         onDispose {
+            exoPlayer?.removeAnalyticsListener(analyticsListener)
             exoPlayer?.release()
             Log.e("ExoplayerCompose","exoPlayer.release()")
             lifecycle.removeObserver(observer)

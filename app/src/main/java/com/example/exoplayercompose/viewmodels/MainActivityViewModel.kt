@@ -5,11 +5,10 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-
 import com.example.exoplayercompose.model.PlayerState
 import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.Player.STATE_READY
 import com.google.android.exoplayer2.analytics.AnalyticsListener
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -22,7 +21,7 @@ class MainActivityViewModel : ViewModel() {
             var isControllerVisible = playerState.value.isControllerVisible
             if(!isControllerVisible) {
                 playerState.value = playerState.value.copy(isControllerVisible = playerState.value.isControllerVisible.not())
-                delay(3000)
+                delay(5000)
                 playerState.value = playerState.value.copy(isControllerVisible = playerState.value.isControllerVisible.not())
             }else{
                 playerState.value = playerState.value.copy(isControllerVisible = playerState.value.isControllerVisible.not())
