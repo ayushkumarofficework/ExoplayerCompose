@@ -76,6 +76,9 @@ dependencies {
 
     implementation 'com.google.android.exoplayer:exoplayer:2.18.0'
     implementation 'com.google.android.exoplayer:extension-ima:2.18.0'
+    implementation 'com.google.android.exoplayer:extension-okhttp:2.18.0'
+
+    implementation "com.squareup.okhttp3:okhttp-urlconnection:4.9.1"
 
     implementation 'com.google.ads.interactivemedia.v3:interactivemedia:3.29.0'
 }

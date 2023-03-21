@@ -10,12 +10,9 @@ import android.view.LayoutInflater
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-
-
 import androidx.compose.runtime.*
 import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
@@ -28,10 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-
 import androidx.lifecycle.ViewModelProvider
-
-
 import com.example.exoplayercompose.model.PlayerState
 import com.example.exoplayercompose.ui.theme.ExoplayerComposeTheme
 import com.example.exoplayercompose.viewmodels.MainActivityViewModel
@@ -46,7 +40,6 @@ import com.google.android.exoplayer2.ext.ima.ImaAdsLoader
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
-import com.google.android.exoplayer2.source.ads.AdsLoader
 import com.google.android.exoplayer2.source.ads.AdsMediaSource
 import com.google.android.exoplayer2.source.dash.DashMediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
@@ -96,11 +89,11 @@ class MainActivity : ComponentActivity() {
         if(adsLoader == null) {
             adsLoader = ImaAdsLoader.Builder(context).setAdEventListener { adEvent ->
                 adEvent?.let {
-
+                    Log.e("ExoplayerCompose","onAdEvent")
                 }
             }.setAdErrorListener{ adErrorEvent ->
                 adErrorEvent?.let {
-
+                    Log.e("ExoplayerCompose","onAdError "+it.error.message)
                 }
             }.build()
         }
@@ -221,19 +214,7 @@ fun PlayerScreen(getPlayerView : (Context) -> View,
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
-    val exoPlayer : ExoPlayer? = remember {
-        val analyticsCollector : AnalyticsCollector = DefaultAnalyticsCollector(Clock.DEFAULT)
-        analyticsCollector.addListener(analyticsListener)
-        val trackSelector = DefaultTrackSelector(context, AdaptiveTrackSelection.Factory())
-        trackSelector.setParameters(TrackSelectionParameters.Builder(context).build())
-        ExoPlayer.Builder(context)
-            .setTrackSelector(trackSelector)
-            .setAnalyticsCollector(analyticsCollector)
-            .setBandwidthMeter(DefaultBandwidthMeter.getSingletonInstance(context))
-            .setSeekForwardIncrementMs(30000)
-            .setSeekBackIncrementMs(30000)
-            .build()
-    }
+    val exoPlayer : ExoPlayer? = rememberExoPlayer(context = context, analyticsListener = analyticsListener)
 
     Box(modifier = modifier){
 
@@ -297,7 +278,7 @@ fun PlayerScreen(getPlayerView : (Context) -> View,
         onDispose {
             exoPlayer?.removeAnalyticsListener(analyticsListener)
             exoPlayer?.release()
-            Log.e("ExoplayerCompose","exoPlayer.release()")
+            Log.e("ExoplayerCompose","on dispose exoPlayer.release()")
             lifecycle.removeObserver(observer)
         }
 
